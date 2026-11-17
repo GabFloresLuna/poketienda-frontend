@@ -47,7 +47,8 @@ describe('<Header />', () => {
   });
 
   it('RENDERIZADO CONDICIONAL: un administrador ve "Admin" y "Cerrar sesión"', () => {
-    localStorage.setItem('poketienda-sesion', JSON.stringify({ id: 'U001', nombre: 'Admin', correo: 'admin@duoc.cl', tipo: 'Administrador' }));
+    localStorage.setItem('poketienda-token', 'token-de-prueba');
+    localStorage.setItem('poketienda-sesion', JSON.stringify({ id: 1, nombre: 'Admin', correo: 'admin@duoc.cl', rol: 'ADMIN' }));
     montar(<Header />);
     expect(screen.getByRole('link', { name: 'Admin' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeTruthy();

@@ -1,24 +1,25 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AppProvider } from '../context/AppContext.jsx';
-import { productosDB } from '../data/db.js';
 import { formatoCLP } from '../utils.js';
 import Carrito from './Carrito.jsx';
 
 const ITEMS = [
-  { id: 'P001', nombre: 'Figura Palkia Legendaria', img: '/x.jpg', precio: 24990, cantidad: 2 },
-  { id: 'P003', nombre: 'Set de Cartas Sinnoh', img: '/y.jpg', precio: 6990, cantidad: 1 },
+  { id: 1, nombre: 'Figura Palkia Legendaria', img: '/x.jpg', precio: 24990, cantidad: 2 },
+  { id: 3, nombre: 'Set de Cartas Sinnoh', img: '/y.jpg', precio: 6990, cantidad: 1 },
 ];
 const montar = (items = ITEMS) => {
-  localStorage.setItem('poketienda-carrito', JSON.stringify(items));
+  localStorage.setItem('poketienda-carrito-v2', JSON.stringify(items));
   return render(<MemoryRouter><AppProvider><Carrito /></AppProvider></MemoryRouter>);
 };
 const completar = () => {
-  fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: 'Ana Pérez' } });
-  fireEvent.change(screen.getByLabelText('Dirección de entrega'), { target: { value: 'Calle 1' } });
+  [['Nombre', 'Ana'], ['Apellidos', 'Pérez'], ['Correo', 'ana@gmail.com'], ['Calle y número', 'Calle 1 #123'], ['Región', 'Metropolitana'], ['Comuna', 'Renca']]
+    .forEach(([etiqueta, valor]) => fireEvent.change(screen.getByLabelText(etiqueta), { target: { value: valor } }));
 };
+const responder = (estado, cuerpo) => Promise.resolve(new Response(JSON.stringify(cuerpo), { status: estado }));
+const guardado = () => JSON.parse(localStorage.getItem('poketienda-carrito-v2'));
 
-describe('<Carrito />', () => {
+describe('<Carrito /> (ms-ventas)', () => {
   beforeEach(() => localStorage.clear());
   afterEach(cleanup);
 
@@ -41,29 +42,32 @@ describe('<Carrito />', () => {
     expect(screen.getByRole('button', { name: /Pagar/ }).textContent).toContain(formatoCLP(24990 * 3 + 6990));
   });
 
-  it('RENDERIZADO CONDICIONAL: pagar sin datos muestra errores y no registra el pedido', () => {
+  it('RENDERIZADO CONDICIONAL: pagar sin datos muestra errores y no llama al backend', () => {
+    const llamada = spyOn(window, 'fetch');
     montar();
     fireEvent.click(screen.getByRole('button', { name: /Pagar/ }));
     expect(screen.getByText('El nombre es obligatorio.')).toBeTruthy();
-    expect(screen.queryByText('¡Compra realizada!')).toBeNull();
+    expect(llamada).not.toHaveBeenCalled();
   });
 
-  it('EVENTOS: pago aprobado confirma la compra, descuenta stock y vacía el carrito', () => {
+  it('EVENTOS: compra exitosa envía solo productoId y cantidad, confirma la boleta y vacía el carrito', async () => {
+    const llamada = spyOn(window, 'fetch').and.callFake(() => responder(201, { id: 7, total: 56970, estado: 'PAGADA' }));
     montar();
     completar();
     fireEvent.click(screen.getByRole('button', { name: /Pagar/ }));
-    expect(screen.getByText('¡Compra realizada!')).toBeTruthy();
-    expect(productosDB.obtener('P001').stock).toBe(6); // 8 - 2
-    expect(JSON.parse(localStorage.getItem('poketienda-carrito')).length).toBe(0);
+    expect(await screen.findByText('¡Compra realizada!')).toBeTruthy();
+    const [url, opciones] = llamada.calls.mostRecent().args;
+    expect(url).toContain('/boletas');
+    expect(JSON.parse(opciones.body).items).toEqual([{ productoId: 1, cantidad: 2 }, { productoId: 3, cantidad: 1 }]);
+    await waitFor(() => expect(guardado().length).toBe(0));
   });
 
-  it('EVENTOS: pago rechazado muestra el error y conserva el carrito y el stock', () => {
+  it('EVENTOS: sin stock (409) muestra el mensaje del backend y conserva el carrito', async () => {
+    spyOn(window, 'fetch').and.callFake(() => responder(409, { codigo: 409, mensaje: 'Stock insuficiente para Figura Palkia Legendaria', campos: null }));
     montar();
     completar();
-    fireEvent.change(screen.getByLabelText('Resultado simulado del pago'), { target: { value: 'rechazado' } });
     fireEvent.click(screen.getByRole('button', { name: /Pagar/ }));
-    expect(screen.getByText('No se pudo realizar el pago')).toBeTruthy();
-    expect(productosDB.obtener('P001').stock).toBe(8);
-    expect(JSON.parse(localStorage.getItem('poketienda-carrito')).length).toBe(2);
+    expect(await screen.findByText('Stock insuficiente para Figura Palkia Legendaria')).toBeTruthy();
+    expect(guardado().length).toBe(2);
   });
 });

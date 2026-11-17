@@ -19,10 +19,10 @@ describe('utils.js', () => {
     expect(V.email('')).not.toBe('');
   });
 
-  it('contraseña: entre 4 y 10 caracteres', () => {
-    expect(V.password('123')).not.toBe('');
-    expect(V.password('1234')).toBe('');
-    expect(V.password('12345678901')).not.toBe('');
+  it('contraseña: entre 6 y 72 caracteres', () => {
+    expect(V.password('12345')).not.toBe('');
+    expect(V.password('123456')).toBe('');
+    expect(V.password('x'.repeat(73))).not.toBe('');
   });
 
   it('requerido y largo máximo', () => {
