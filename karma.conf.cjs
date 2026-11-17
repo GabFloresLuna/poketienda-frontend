@@ -21,7 +21,7 @@ module.exports = function (config) {
           format: 'iife',
           jsx: 'automatic',
           target: 'es2020',
-          define: { 'process.env.NODE_ENV': '"test"' },
+          define: { 'process.env.NODE_ENV': '"test"', 'import.meta.env': '{}' },
           loader: {
             '.css': 'empty',
             '.svg': 'dataurl',

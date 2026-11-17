@@ -5,6 +5,8 @@ import Acceso from './Acceso.jsx';
 
 const montar = (modo) => render(<MemoryRouter><AppProvider><Acceso modo={modo} /></AppProvider></MemoryRouter>);
 const escribir = (etiqueta, valor) => fireEvent.change(screen.getByLabelText(etiqueta), { target: { value: valor } });
+// Jasmine no lanza error en `expect`, así que waitFor necesita una condición que lance.
+const esperar = (condicion) => waitFor(() => { if (!condicion()) throw new Error('La condición aún no se cumple.'); });
 const responder = (estado, cuerpo) => Promise.resolve(new Response(JSON.stringify(cuerpo), { status: estado }));
 
 const USUARIO = { id: 1, nombre: 'Admin', apellidos: 'Pearl', correo: 'admin@duoc.cl', rol: 'ADMIN' };
@@ -52,7 +54,7 @@ describe('<Acceso /> — login y registro (ms-usuarios)', () => {
     escribir('Correo electrónico', 'admin@duoc.cl');
     escribir(/^Contraseña/, 'Admin123');
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
-    await waitFor(() => expect(localStorage.getItem('poketienda-token')).toBe('acceso-1'));
+    await esperar(() => localStorage.getItem('poketienda-token') === 'acceso-1');
     expect(localStorage.getItem('poketienda-refresh')).toBe('refresco-1');
     expect(JSON.parse(localStorage.getItem('poketienda-sesion')).rol).toBe('ADMIN');
     expect(llamada.calls.mostRecent().args[0]).toContain('/auth/login');
@@ -84,7 +86,7 @@ describe('<Acceso /> — login y registro (ms-usuarios)', () => {
     escribir(/^Contraseña \(/, '123456');
     escribir('Confirmar contraseña', '123456');
     fireEvent.click(screen.getByRole('button', { name: 'Registrarme' }));
-    await waitFor(() => expect(llamada.calls.count()).toBe(2));
+    await esperar(() => llamada.calls.count() === 2);
     expect(llamada.calls.argsFor(0)[0]).toContain('/auth/registro');
     expect(llamada.calls.argsFor(1)[0]).toContain('/auth/login');
   });

@@ -16,6 +16,8 @@ const completar = () => {
   [['Nombre', 'Ana'], ['Apellidos', 'Pérez'], ['Correo', 'ana@gmail.com'], ['Calle y número', 'Calle 1 #123'], ['Región', 'Metropolitana'], ['Comuna', 'Renca']]
     .forEach(([etiqueta, valor]) => fireEvent.change(screen.getByLabelText(etiqueta), { target: { value: valor } }));
 };
+// Jasmine no lanza error en `expect`, así que waitFor necesita una condición que lance.
+const esperar = (condicion) => waitFor(() => { if (!condicion()) throw new Error('La condición aún no se cumple.'); });
 const responder = (estado, cuerpo) => Promise.resolve(new Response(JSON.stringify(cuerpo), { status: estado }));
 const guardado = () => JSON.parse(localStorage.getItem('poketienda-carrito-v2'));
 
@@ -59,7 +61,7 @@ describe('<Carrito /> (ms-ventas)', () => {
     const [url, opciones] = llamada.calls.mostRecent().args;
     expect(url).toContain('/boletas');
     expect(JSON.parse(opciones.body).items).toEqual([{ productoId: 1, cantidad: 2 }, { productoId: 3, cantidad: 1 }]);
-    await waitFor(() => expect(guardado().length).toBe(0));
+    await esperar(() => guardado().length === 0);
   });
 
   it('EVENTOS: sin stock (409) muestra el mensaje del backend y conserva el carrito', async () => {
