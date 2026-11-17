@@ -1,13 +1,16 @@
 import { Link } from 'react-router-dom';
 import CardProducto from '../components/CardProducto.jsx';
 import { useApp } from '../context/AppContext.jsx';
-import { productosDB } from '../data/db.js';
+import EstadoCarga from '../components/EstadoCarga.jsx';
+import { useCarga } from '../hooks/useCarga.js';
+import { productosServicio } from '../servicios/productosServicio.js';
 
 const BENEFICIOS = ['Productos originales verificados', 'Despacho a todo Chile en 48 h hábiles', 'Pago seguro y seguimiento del pedido'];
 
 export default function Home() {
   const { agregar } = useApp();
-  const destacados = productosDB.listar().slice(0, 4);
+  const { datos, cargando, error } = useCarga(() => productosServicio.listar());
+  const destacados = (datos ?? []).slice(0, 4);
 
   return (
     <>
@@ -25,6 +28,7 @@ export default function Home() {
       </section>
 
       <h2 className="h3 mt-4 mb-3">Productos destacados</h2>
+      <EstadoCarga cargando={cargando} error={error} />
       <div className="lista-productos-destacados row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
         {destacados.map((p) => (
           <div className="columna-producto col" key={p.id}>

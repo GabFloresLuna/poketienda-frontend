@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import CardProducto from '../components/CardProducto.jsx';
 import { useApp } from '../context/AppContext.jsx';
-import { productosDB } from '../data/db.js';
+import EstadoCarga from '../components/EstadoCarga.jsx';
+import { useCarga } from '../hooks/useCarga.js';
+import { productosServicio } from '../servicios/productosServicio.js';
 import { precioFinal } from '../utils.js';
 
 /** Catálogo con búsqueda, filtro por categoría, solo ofertas y orden (reemplaza a las vistas Categorías y Ofertas). */
 export default function Productos() {
   const { agregar } = useApp();
-  const productos = productosDB.listar();
+  const { datos, cargando, error } = useCarga(() => productosServicio.listar());
+  const productos = datos ?? [];
   const [q, setQ] = useState('');
   const [categoria, setCategoria] = useState('');
   const [soloOfertas, setSoloOfertas] = useState(false);
@@ -55,10 +58,11 @@ export default function Productos() {
         </div>
       </div>
 
-      {lista.length === 0 ? (
+      <EstadoCarga cargando={cargando} error={error} />
+      {!cargando && !error && lista.length === 0 ? (
         <p className="aviso-sin-resultados alert alert-info" role="status">Ningún producto coincide con tu búsqueda.</p>
       ) : (
-        <div className="lista-productos row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
+        !cargando && !error && <div className="lista-productos row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
           {lista.map((p) => (
             <div className="columna-producto col" key={p.id}>
               <CardProducto producto={p} onAgregar={agregar} />

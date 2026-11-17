@@ -2,15 +2,23 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import CardProducto from '../components/CardProducto.jsx';
 import { useApp } from '../context/AppContext.jsx';
-import { productosDB } from '../data/db.js';
+import EstadoCarga from '../components/EstadoCarga.jsx';
+import { useCarga } from '../hooks/useCarga.js';
+import { productosServicio } from '../servicios/productosServicio.js';
 import { formatoCLP } from '../utils.js';
 
 export default function DetalleProducto() {
   const { id } = useParams();
   const { agregar } = useApp();
-  const producto = productosDB.obtener(id);
+  const { datos: producto, cargando, error, codigo } = useCarga(() => productosServicio.obtener(id), [id]);
+  const { datos: delMismoTipo } = useCarga(
+    () => (producto ? productosServicio.listar({ categoriaId: producto.categoriaId }) : Promise.resolve([])),
+    [producto?.categoriaId]
+  );
   const [cantidad, setCantidad] = useState(1);
   const [aviso, setAviso] = useState('');
+
+  if (cargando || (error && codigo !== 404)) return <EstadoCarga cargando={cargando} error={error} />;
 
   if (!producto) {
     return (
@@ -22,7 +30,7 @@ export default function DetalleProducto() {
   }
 
   const max = Math.max(1, Math.min(10, producto.stock));
-  const relacionados = productosDB.listar().filter((p) => p.categoria === producto.categoria && p.id !== producto.id).slice(0, 3);
+  const relacionados = (delMismoTipo ?? []).filter((p) => p.id !== producto.id).slice(0, 3);
 
   // Valida la cantidad: entre 1 y el máximo permitido
   const cambiarCantidad = (valor) => {
