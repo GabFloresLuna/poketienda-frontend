@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { usuariosDB } from '../data/db.js';
+import { EVENTO_SESION_EXPIRADA, borrarTokens, leerToken } from '../api.js';
+import { authServicio } from '../servicios/authServicio.js';
 import { precioFinal } from '../utils.js';
 
 const AppContext = createContext(null);
@@ -18,11 +19,18 @@ const cargar = (clave, defecto) => {
  * y la sesión del usuario. Ambos se guardan en localStorage.
  */
 export function AppProvider({ children }) {
-  const [carrito, setCarrito] = useState(() => cargar('poketienda-carrito', []));
-  const [usuario, setUsuario] = useState(() => cargar('poketienda-sesion', null));
+  const [carrito, setCarrito] = useState(() => cargar('poketienda-carrito-v2', []));
+  const [usuario, setUsuario] = useState(() => (leerToken() ? cargar('poketienda-sesion', null) : null));
 
-  useEffect(() => localStorage.setItem('poketienda-carrito', JSON.stringify(carrito)), [carrito]);
+  useEffect(() => localStorage.setItem('poketienda-carrito-v2', JSON.stringify(carrito)), [carrito]);
   useEffect(() => localStorage.setItem('poketienda-sesion', JSON.stringify(usuario)), [usuario]);
+
+  // Si el backend rechaza el token (vencido y sin refresh válido), se cierra la sesión.
+  useEffect(() => {
+    const alExpirar = () => setUsuario(null);
+    window.addEventListener(EVENTO_SESION_EXPIRADA, alExpirar);
+    return () => window.removeEventListener(EVENTO_SESION_EXPIRADA, alExpirar);
+  }, []);
 
   /* ---- carrito ---- */
   const agregar = (producto, cantidad = 1) =>
@@ -36,24 +44,22 @@ export function AppProvider({ children }) {
   const quitar = (id) => setCarrito((c) => c.filter((i) => i.id !== id));
   const vaciar = () => setCarrito([]);
 
-  /* ---- sesión ---- */
-  const abrirSesion = (u) => {
-    const sesion = { id: u.id, nombre: u.nombre, correo: u.correo, tipo: u.tipo };
-    setUsuario(sesion);
-    return sesion;
+  /* ---- sesión (ms-usuarios) ---- */
+  /** Inicia sesión con el backend. Devuelve el usuario o lanza ApiError (401 si las credenciales son incorrectas). */
+  const iniciarSesion = async (correo, password) => {
+    const u = await authServicio.login(correo.trim(), password);
+    setUsuario(u);
+    return u;
   };
-  /** Devuelve el usuario si las credenciales son correctas, o null. */
-  const iniciarSesion = (correo, password) => {
-    const u = usuariosDB.listar().find((x) => x.correo.toLowerCase() === correo.toLowerCase() && x.password === password);
-    return u ? abrirSesion(u) : null;
+  /** Crea una cuenta de cliente e inicia sesión. Lanza ApiError si el backend rechaza los datos. */
+  const registrar = async (datos) => {
+    await authServicio.registro(datos);
+    return iniciarSesion(datos.correo, datos.password);
   };
-  /** Crea un cliente. Devuelve un mensaje de error, o '' si todo salió bien. */
-  const registrar = ({ nombre, correo, password }) => {
-    if (usuariosDB.listar().some((x) => x.correo.toLowerCase() === correo.toLowerCase())) return 'Ya existe una cuenta con ese correo.';
-    abrirSesion(usuariosDB.crear({ nombre, correo: correo.toLowerCase(), password, tipo: 'Cliente' }));
-    return '';
+  const cerrarSesion = () => {
+    borrarTokens();
+    setUsuario(null);
   };
-  const cerrarSesion = () => setUsuario(null);
 
   /* ---- valores derivados: se calculan, no se guardan ---- */
   const cantidad = carrito.reduce((s, i) => s + i.cantidad, 0);

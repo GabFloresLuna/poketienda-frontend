@@ -38,7 +38,7 @@ export default function Header() {
                 <NavLink className="nav-link" to={e.to} end={e.to === '/'} onClick={cerrar}>{e.texto}</NavLink>
               </li>
             ))}
-            {usuario?.tipo === 'Administrador' && (
+            {usuario?.rol === 'ADMIN' && (
               <li className="nav-item"><NavLink className="nav-link" to="/admin" onClick={cerrar}>Admin</NavLink></li>
             )}
           </ul>

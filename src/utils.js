@@ -20,5 +20,5 @@ export const V = {
     return DOMINIOS.includes(v.split('@')[1].toLowerCase()) ? '' : `Solo se permiten los dominios: ${DOMINIOS.join(', ')}.`;
   },
 
-  password: (v) => (v && v.length >= 4 && v.length <= 10 ? '' : 'La contraseña debe tener entre 4 y 10 caracteres.'),
+  password: (v) => (v && v.length >= 6 && v.length <= 72 ? '' : 'La contraseña debe tener entre 6 y 72 caracteres.'),
 };
