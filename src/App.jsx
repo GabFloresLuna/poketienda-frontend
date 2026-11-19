@@ -9,6 +9,7 @@ import Contacto from './pages/Contacto.jsx';
 import DetalleProducto from './pages/DetalleProducto.jsx';
 import Home from './pages/Home.jsx';
 import Nosotros from './pages/Nosotros.jsx';
+import Ordenes from './pages/Ordenes.jsx';
 import Productos from './pages/Productos.jsx';
 
 // Plantilla común: el header y el footer se escriben una sola vez.
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="blogs/:id" element={<Blogs />} />
         <Route path="contacto" element={<Contacto />} />
         <Route path="admin" element={<Admin />} />
+        <Route path="ordenes" element={<Ordenes />} />
         <Route path="*" element={<NoEncontrado />} />
       </Route>
     </Routes>
