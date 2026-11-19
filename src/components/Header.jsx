@@ -41,6 +41,9 @@ export default function Header() {
             {usuario?.rol === 'ADMIN' && (
               <li className="nav-item"><NavLink className="nav-link" to="/admin" onClick={cerrar}>Admin</NavLink></li>
             )}
+            {usuario?.rol === 'VENDEDOR' && (
+              <li className="nav-item"><NavLink className="nav-link" to="/ordenes" onClick={cerrar}>Órdenes</NavLink></li>
+            )}
           </ul>
 
           <div className="acciones-usuario d-flex align-items-center gap-2">
